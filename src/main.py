@@ -147,10 +147,12 @@ class KeyMapperWindow(QMainWindow):
 
     def start_mapping(self):
         if not self.mapping_active:
-            self.activate_midi_translation()
-            self.mapping_active = True
-            self.status_label.setText("Mapping activated!")
-            self.start_button.setText("Deactivate Mapping")
+            if self.activate_midi_translation():
+                self.mapping_active = True
+                self.status_label.setText("Mapping activated!")
+                self.start_button.setText("Deactivate Mapping")
+            else:
+                self.status_label.setText("No MIDI device found.")
         else:
             # Deactivate all mappings
             self.deactivate_midi_translation()
@@ -160,24 +162,27 @@ class KeyMapperWindow(QMainWindow):
 
 
     def activate_midi_translation(self, port_number=None):
+        # start midi 
+        ports = self.list_midi_ports()
+        if not ports:
+            print("No MIDI input ports available!")
+            return False
+        # If no port specified, use the first available port
+        if port_number is None:
+            port_number = ports[0] # type: ignore
+        
         # fill key pairs
         self.key_pairs = {}
         for midi_key_Q, keyboard_key_Q in self.input_pairs:
             self.key_pairs[midi_key_Q.text()] = keyboard_key_Q.text()
         print("key pairs filled: " + str(self.key_pairs))
 
-        # start midi 
-        ports = self.list_midi_ports()
-        if not ports:
-                print("No MIDI input ports available!")
-        # If no port specified, use the first available port
-        if port_number is None:
-            port_number = ports[0]
         # Open the MIDI input port
         self.midi_in, self.port_name = open_midiinput(port = port_number)
         print(f"Listening on [ {self.port_name} ] ...")
         self.midi_in.set_callback(MidiInputHandler(self.key_pairs))
         print(f"Callback set for [ {self.port_name} ]")
+        return True
 
 
     def deactivate_midi_translation(self):
@@ -185,7 +190,7 @@ class KeyMapperWindow(QMainWindow):
         if self.midi_in:
             self.midi_in.close_port()  # type: ignore
             del self.midi_in
-            print(f"Closed [ {self.port_name} ]") 
+            print(f"Closed connection to [ {self.port_name} ]") 
 
 
     def read_midi_input(self, port_number=None) -> MidiKey | None:
@@ -195,10 +200,10 @@ class KeyMapperWindow(QMainWindow):
         try:
             ports = self.list_midi_ports()
             if not ports:
-                    print("No MIDI input ports available!")
+                print("No MIDI input ports available!")
             # If no port specified, use the first available port
             if port_number is None:
-                port_number = ports[0]
+                port_number = ports[0] # type: ignore
             # Open the MIDI input port
             midi_in, port_name = open_midiinput(port = port_number)
             print(f"Listening on [ {port_name} ] ...")
@@ -210,25 +215,32 @@ class KeyMapperWindow(QMainWindow):
                     message, delta_time = msg
                     key = MidiKey(message)
                     print(f"MIDI message: {message}")
-                time.sleep(0.01)  # Small sleep to prevent CPU overuse
-
+                time.sleep(0.05)  # Small sleep to prevent CPU overuse
+        except:
+            print("No MIDI device found.")
+            self.status_label.setText("No MIDI device found.")
         finally:
-            if 'midi_in' in locals():
+            if midi_in:
                 midi_in.close_port() # type: ignore
                 del midi_in
-                print(f"Closed [ {port_name} ]")
+                print(f"Closed connection to [ {port_name} ]")
                 return key
 
 
     def list_midi_ports(self):
-        # List all available MIDI input ports
-        midi_in = rtmidi.MidiIn() # type: ignore
-        ports = midi_in.get_ports()
-        
-        print("Available MIDI input ports:")
-        for i, port in enumerate(ports):
-            print(f"[{i}] {port}")
-        return ports
+        try:
+            # List all available MIDI input ports
+            midi_in = rtmidi.MidiIn() # type: ignore
+            ports = midi_in.get_ports()
+            
+            print("Available MIDI input ports:")
+            for i, port in enumerate(ports):
+                print(f"[{i}] {port}")
+            return ports
+        except:
+            print("No MIDI device found.")
+            self.status_label.setText("No MIDI device found.")
+
 
 
 class MidiInputHandler(object):
