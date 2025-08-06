@@ -1,6 +1,6 @@
 src/__pycache__
-build/*
-dist/*
+build
+dist
 MIDIgaming.spec
 key_mappings.json
 
