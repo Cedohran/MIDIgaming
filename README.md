@@ -1,7 +1,11 @@
 Haha hihi MIDI gaming
 
 ## How to install:
-1. for python-rtmidi Visual Studio Build Tools are required:
+1. Install python3 along with pip: 
+    - https://www.python.org/downloads/
+    - https://pip.pypa.io/en/stable/installation/
+
+2. for python-rtmidi Visual Studio Build Tools are required:
     - Download [Visual Studio Build Tools from: Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
     - Run the installer
     - Select "Desktop development with C++"
@@ -10,7 +14,7 @@ Haha hihi MIDI gaming
         - Windows 10/11 SDK
         - C++ CMake tools
 
-2. Install the requirements by running ```pip install -r requirements.txt``` inside this directory
+3. Install the requirements by running ```pip install -r requirements.txt``` inside this directory
 
-3. Start the application with ```python .\src\main.py```
+4. Start the application with ```python .\src\main.py```
 
