@@ -1,6 +1,13 @@
 Haha hihi MIDI gaming
 
-## How to install:
+## How to use:
+
+### Option 1: Download the executable
+1. Go to the [Releases](../../releases) page
+2. Download the latest `MIDIgaming.exe`
+3. Have fun
+
+### Option 2: Run from source
 1. Install python3 along with pip: 
     - https://www.python.org/downloads/
     - https://pip.pypa.io/en/stable/installation/
