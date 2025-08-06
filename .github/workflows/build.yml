@@ -31,8 +31,22 @@ jobs:
     
     - name: Build executable
       run: |
-        pyinstaller --noconfirm --onefile --windowed --icon "midi.ico" --add-data "src;src/" --name "MIDIgaming" "src/main.py"
+        pyinstaller --noconfirm --onefile --windowed --icon "misc/midi.ico" --add-data "src;src/" --name "MIDIgaming" "src/main.py"
     
+    - name: Decode Certificate
+      run: |
+        echo "${{ secrets.SIGNING_CERT }}" | base64 --decode > misc/certificate.pfx
+      shell: bash
+    
+    - name: Sign Executable
+      run: |
+        signtool sign /f misc/certificate.pfx /p "${{ secrets.CERT_PASSWORD }}" /tr http://timestamp.digicert.com /td sha256 /fd sha256 ./dist/MIDIgaming.exe
+      
+    - name: Cleanup Certificate
+      run: |
+        rm misc/certificate.pfx
+      shell: bash
+
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
