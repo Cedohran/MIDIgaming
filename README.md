@@ -1,4 +1,4 @@
-Haha hihi MIDI gaming
+Small program to map MIDI to keyboard inputs.
 
 ## How to use:
 
