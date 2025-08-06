@@ -3,7 +3,7 @@ name: Build and Release
 on:
   workflow_dispatch:
     inputs:
-      tags:
+      tag_name:
         description: 'Release tag'
         required: true
         type: string
@@ -39,8 +39,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
+        tag_name: ${{ github.event.inputs.tag_name }}
+        release_name: Release ${{ github.event.inputs.tag_name }}
         draft: false
         prerelease: false
     
