@@ -7,9 +7,6 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
 from PyQt6.QtCore import Qt
 import keyboard
 import json
-import os
-import mido
-from midi import MidiConnector
 
 from MidiKey import MidiKey
 from threading import Thread
@@ -253,9 +250,6 @@ class MidiInputHandler(object):
 
 
 def main():
-    # test_key = MidiKey("120,2,3")
-    # test_key2 = MidiKey([121, 2, 3])
-    # print(test_key == test_key2)
     app = QApplication(sys.argv)
     window = KeyMapperWindow()
     window.show()
