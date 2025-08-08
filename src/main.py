@@ -3,7 +3,7 @@ from rtmidi.midiutil import open_midiinput
 import time
 import sys
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
-                           QPushButton, QLabel, QGridLayout, QLineEdit)
+                           QPushButton, QLabel, QGridLayout, QLineEdit, QComboBox)
 from PyQt6.QtCore import Qt
 import keyboard
 import json
@@ -17,6 +17,40 @@ class KeyMapperWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Keyboard Mapper")
         self.setGeometry(100, 100, 400, 300)
+
+        ################
+        ###########      MIDI
+        ################
+        
+        # variables
+        self.mapping_active = False
+        self.midi_in = None
+        self.port_name = None
+        self.port_number = 0
+
+        # MIDI dropdown menu
+        self.midi_device_dropdown = QComboBox(self)
+        self.midi_device_dropdown.move(50, 30)
+        self.ports = self.list_midi_ports()
+        # Add items to the dropdown
+        for port_number, port_name in self.ports.items():
+            self.midi_device_dropdown.addItem(port_name, port_number)
+        if len(self.ports) == 0:
+            self.midi_device_dropdown.addItem("No MIDI device found", 0)
+
+        # MIDI refresh button
+        self.refresh_button = QPushButton("Refresh")
+        self.refresh_button.clicked.connect(self.midi_device_refresh)
+
+        # MIDI select dive layout
+        self.select_midi_device_grid = QGridLayout()
+        self.select_midi_device_grid.addWidget(self.midi_device_dropdown, 0, 0)
+        self.select_midi_device_grid.addWidget(self.refresh_button, 0, 1)
+
+
+        # Dictionary for key mappings
+        self.key_pairs = {}
+        self.input_pairs = [] 
         
         # Main widget and layout
         main_widget = QWidget()
@@ -30,12 +64,11 @@ class KeyMapperWindow(QMainWindow):
         self.grid_layout.addWidget(QLabel("MIDI Key"), 0, 0)
         self.grid_layout.addWidget(QLabel("Keyboard Key"), 0, 1)
         
-        # Dictionary for key mappings
-        self.key_pairs = {}
-        self.input_pairs = [] 
-        
         # Create initial mapping pair
         self.add_mapping_row()
+
+        # Connect the selection change event
+        self.midi_device_dropdown.currentIndexChanged.connect(self.select_midi_device)
         
         # Buttons
         self.add_button = QPushButton("Add New Mapping")
@@ -48,6 +81,7 @@ class KeyMapperWindow(QMainWindow):
         self.start_button.clicked.connect(self.start_mapping)
         
         # build layout
+        layout.addLayout(self.select_midi_device_grid)
         layout.addLayout(self.grid_layout)
         layout.addWidget(self.add_button)
         layout.addWidget(self.save_button)
@@ -58,20 +92,23 @@ class KeyMapperWindow(QMainWindow):
         layout.addWidget(self.status_label)
         self.test_label = QLabel("")
         layout.addWidget(self.test_label)
-        
-        #MIDI
-        self.midi_in = None
-        self.port_name = None
-        
-        #Threading
-        self.translation_thread = Thread(target = self.activate_midi_translation)
-        self.stop_translation = False
 
         # load saved mappings
         self.load_mappings()
-        
-        self.mapping_active = False
 
+
+    def midi_device_refresh(self):
+        self.midi_device_dropdown.clear()
+        self.ports = self.list_midi_ports()
+        # Add items to the dropdown
+        for port_number, port_name in self.ports.items():
+            self.midi_device_dropdown.addItem(port_name, port_number)
+        if len(self.ports) == 0:
+            self.midi_device_dropdown.addItem("No MIDI device found", 0)
+
+    def select_midi_device(self, index):
+        self.port_number = self.midi_device_dropdown.currentData()
+        self.status_label.setText(f"Selected: {self.midi_device_dropdown.currentText()}")
 
     def add_mapping_row(self):
         row = len(self.input_pairs) + 1
@@ -100,7 +137,7 @@ class KeyMapperWindow(QMainWindow):
         self.status_label.setText("Press a MIDI key...")
         QApplication.processEvents()
         
-        key = self.read_midi_input(0)
+        key = self.read_midi_input(self.port_number)
         if key:
             field.setText(str(key))
             self.status_label.setText("")
@@ -147,7 +184,7 @@ class KeyMapperWindow(QMainWindow):
 
     def start_mapping(self):
         if not self.mapping_active:
-            if self.activate_midi_translation():
+            if self.activate_midi_translation(self.port_number):
                 self.mapping_active = True
                 self.status_label.setText("Mapping activated!")
                 self.start_button.setText("Deactivate Mapping")
@@ -162,15 +199,6 @@ class KeyMapperWindow(QMainWindow):
 
 
     def activate_midi_translation(self, port_number=None):
-        # start midi 
-        ports = self.list_midi_ports()
-        if not ports:
-            print("No MIDI input ports available!")
-            return False
-        # If no port specified, use the first available port
-        if port_number is None:
-            port_number = ports[0] # type: ignore
-        
         # fill key pairs
         self.key_pairs = {}
         for midi_key_Q, keyboard_key_Q in self.input_pairs:
@@ -198,12 +226,6 @@ class KeyMapperWindow(QMainWindow):
         midi_in = None
         port_name = None
         try:
-            ports = self.list_midi_ports()
-            if not ports:
-                print("No MIDI input ports available!")
-            # If no port specified, use the first available port
-            if port_number is None:
-                port_number = ports[0] # type: ignore
             # Open the MIDI input port
             midi_in, port_name = open_midiinput(port = port_number)
             print(f"Listening on [ {port_name} ] ...")
@@ -227,19 +249,21 @@ class KeyMapperWindow(QMainWindow):
                 return key
 
 
-    def list_midi_ports(self):
+    def list_midi_ports(self) -> dict[int, str]:
         try:
             # List all available MIDI input ports
             midi_in = rtmidi.MidiIn() # type: ignore
             ports = midi_in.get_ports()
-            
+            ports_list : dict[int, str] = {}
             print("Available MIDI input ports:")
             for i, port in enumerate(ports):
                 print(f"[{i}] {port}")
-            return ports
+                ports_list.update({i: port})
+            return ports_list
         except:
             print("No MIDI device found.")
             self.status_label.setText("No MIDI device found.")
+            return {0: "no MIDI device available"}
 
 
 
