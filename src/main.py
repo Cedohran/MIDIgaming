@@ -47,13 +47,13 @@ class KeyMapperWindow(QMainWindow):
         self.start_button = QPushButton("Activate Mapping")
         self.start_button.clicked.connect(self.start_mapping)
         
-        # Layout zusammenbauen
+        # build layout
         layout.addLayout(self.grid_layout)
         layout.addWidget(self.add_button)
         layout.addWidget(self.save_button)
         layout.addWidget(self.start_button)
         
-        # Status Label
+        # status labels
         self.status_label = QLabel("")
         layout.addWidget(self.status_label)
         self.test_label = QLabel("")
@@ -67,7 +67,7 @@ class KeyMapperWindow(QMainWindow):
         self.translation_thread = Thread(target = self.activate_midi_translation)
         self.stop_translation = False
 
-        # Lade gespeicherte Mappings
+        # load saved mappings
         self.load_mappings()
         
         self.mapping_active = False
@@ -76,7 +76,7 @@ class KeyMapperWindow(QMainWindow):
     def add_mapping_row(self):
         row = len(self.input_pairs) + 1
         
-        # Erstelle Eingabefelder
+        # input fields
         midi_key = QLineEdit()
         keyboard_key = QLineEdit()
         
