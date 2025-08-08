@@ -2,11 +2,13 @@ import rtmidi
 from rtmidi.midiutil import open_midiinput
 import time
 import sys
-from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
-                           QPushButton, QLabel, QGridLayout, QLineEdit, QComboBox)
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QSpacerItem,
+                           QPushButton, QLabel, QGridLayout, QLineEdit, QComboBox, QSizePolicy)
 import keyboard
 import json
 
+from GUIStuff import StatusIndicator
 from MidiKey import MidiKey
 from MidiKey import MidiKeyEventHandler
 
@@ -15,7 +17,7 @@ class KeyMapperWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Keyboard Mapper")
-        self.setGeometry(100, 100, 400, 300)
+        self.setGeometry(200, 100, 400, 350)
 
         ################
         ###########      MIDI
@@ -34,18 +36,31 @@ class KeyMapperWindow(QMainWindow):
         # Add items to the dropdown
         for port_number, port_name in self.ports.items():
             self.midi_device_dropdown.addItem(port_name, port_number)
+            self.midi_device_dropdown.addItem("No MIDI device found und ein super langer text", 0)
         if len(self.ports) == 0:
             self.midi_device_dropdown.addItem("No MIDI device found", 0)
 
         # MIDI refresh button
-        self.refresh_button = QPushButton("Refresh")
+        self.refresh_button = QPushButton("⭮")
         self.refresh_button.clicked.connect(self.midi_device_refresh)
 
-        # MIDI select dive layout
+        # MIDI select device layout
         self.select_midi_device_grid = QGridLayout()
         self.select_midi_device_grid.addWidget(self.midi_device_dropdown, 0, 0)
         self.select_midi_device_grid.addWidget(self.refresh_button, 0, 1)
 
+        # status indicators
+        self.status_label = QLabel("Hello :)")
+        self.mapping_status_indicator = StatusIndicator()
+        self.mapping_status_indicator.setStatus(False)
+        # activate mapping button
+        self.start_button = QPushButton("Activate Mapping")
+        self.start_button.clicked.connect(self.start_mapping)
+
+        # activate button grid
+        self.status_grid = QGridLayout()
+        self.status_grid.addWidget(self.start_button, 0, 0)
+        self.status_grid.addWidget(self.mapping_status_indicator, 0, 1, alignment=Qt.AlignmentFlag.AlignLeft)
 
         # Dictionary for key mappings
         self.key_pairs = {}
@@ -72,26 +87,25 @@ class KeyMapperWindow(QMainWindow):
         # Buttons
         self.add_button = QPushButton("Add New Mapping")
         self.add_button.clicked.connect(self.add_mapping_row)
-        
         self.save_button = QPushButton("Save Mapping")
         self.save_button.clicked.connect(self.save_mappings)
         
-        self.start_button = QPushButton("Activate Mapping")
-        self.start_button.clicked.connect(self.start_mapping)
-        
         # build layout
+        spacer = QSpacerItem(0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        
+        layout.addWidget(self.status_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        layout.addSpacerItem(spacer)
+
+        layout.addLayout(self.status_grid)
+        layout.addSpacerItem(spacer)
+
         layout.addLayout(self.select_midi_device_grid)
+        layout.addSpacerItem(spacer)
+
         layout.addLayout(self.grid_layout)
         layout.addWidget(self.add_button)
         layout.addWidget(self.save_button)
-        layout.addWidget(self.start_button)
         
-        # status labels
-        self.status_label = QLabel("")
-        layout.addWidget(self.status_label)
-        self.test_label = QLabel("")
-        layout.addWidget(self.test_label)
-
         # load saved mappings
         self.load_mappings()
 
@@ -176,7 +190,8 @@ class KeyMapperWindow(QMainWindow):
                 current_row = len(self.input_pairs) - 1
                 self.input_pairs[current_row][0].setText(midi_key)
                 self.input_pairs[current_row][1].setText(keyboard_key)
-                
+            
+            self.status_label.setText("Mappings loaded!")
         except FileNotFoundError:
             pass
 
@@ -184,6 +199,7 @@ class KeyMapperWindow(QMainWindow):
     def start_mapping(self):
         if not self.mapping_active:
             if self.activate_midi_translation(self.port_number):
+                self.mapping_status_indicator.setStatus(True)
                 self.mapping_active = True
                 self.status_label.setText("Mapping activated!")
                 self.start_button.setText("Deactivate Mapping")
@@ -192,6 +208,7 @@ class KeyMapperWindow(QMainWindow):
         else:
             # Deactivate all mappings
             self.deactivate_midi_translation()
+            self.mapping_status_indicator.setStatus(False)
             self.mapping_active = False
             self.status_label.setText("Mapping deactivated!")
             self.start_button.setText("Activate Mapping")
