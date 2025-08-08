@@ -4,12 +4,11 @@ import time
 import sys
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                            QPushButton, QLabel, QGridLayout, QLineEdit, QComboBox)
-from PyQt6.QtCore import Qt
 import keyboard
 import json
 
 from MidiKey import MidiKey
-from threading import Thread
+from MidiKey import MidiKeyEventHandler
 
 
 class KeyMapperWindow(QMainWindow):
@@ -208,7 +207,7 @@ class KeyMapperWindow(QMainWindow):
         # Open the MIDI input port
         self.midi_in, self.port_name = open_midiinput(port = port_number)
         print(f"Listening on [ {self.port_name} ] ...")
-        self.midi_in.set_callback(MidiInputHandler(self.key_pairs))
+        self.midi_in.set_callback(MidiKeyEventHandler(self.key_pairs))
         print(f"Callback set for [ {self.port_name} ]")
         return True
 
@@ -264,25 +263,6 @@ class KeyMapperWindow(QMainWindow):
             print("No MIDI device found.")
             self.status_label.setText("No MIDI device found.")
             return {0: "no MIDI device available"}
-
-
-
-class MidiInputHandler(object):
-    def __init__(self, key_pairs):
-        self.key_pairs = key_pairs
-
-    def __call__(self, event, data=None):
-            message, deltatime = event
-            read_midi_key = MidiKey(message) # type: ignore
-            read_midi_key_str = str(read_midi_key)
-
-            if read_midi_key_str in self.key_pairs.keys():
-                if read_midi_key.strength == 0:
-                    keyboard.release(self.key_pairs[read_midi_key_str])
-                    #print(f"releasing {self.key_pairs[read_midi_key_str]}")
-                else:
-                    keyboard.press(self.key_pairs[read_midi_key_str])                    
-                    #print(f"pressing {self.key_pairs[read_midi_key_str]}")
 
 
 def main():
